@@ -56,6 +56,8 @@ enum CHAINLINK_SEPOLIA_PRICEFEEDS {
     ETH_USD='0x694AA1769357215DE4FAC081bf1f309aDC325306',
 }
 
+const priceFeedKeys = Object.keys(CHAINLINK_SEPOLIA_PRICEFEEDS) as (keyof typeof CHAINLINK_SEPOLIA_PRICEFEEDS)[];
+
 // === Main function ==================================================================================
 
 async function main() {
@@ -127,15 +129,21 @@ async function main() {
             type: 'select',
             name: 'priceFeed',
             message: 'Price Feed Address',
-            choices: [
-                { name: 'BTC/ETH', value: CHAINLINK_SEPOLIA_PRICEFEEDS.BTC_ETH },
-                { name: 'BTC/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.BTC_USD },
-                { name: 'CASH NAV', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CASH_NAV },
-                { name: 'CSPX/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CSPX_USD },
-                { name: 'CZK/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CZK_USD },
-                { name: 'DAI/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.DAI_USD },
-                { name: 'ETH/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.ETH_USD }
-            ]
+            // choices: [
+            //     { name: 'BTC/ETH', value: CHAINLINK_SEPOLIA_PRICEFEEDS.BTC_ETH },
+            //     { name: 'BTC/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.BTC_USD },
+            //     { name: 'CASH NAV', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CASH_NAV },
+            //     { name: 'CSPX/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CSPX_USD },
+            //     { name: 'CZK/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CZK_USD },
+            //     { name: 'DAI/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.DAI_USD },
+            //     { name: 'ETH/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.ETH_USD }
+            // ]
+            choices: priceFeedKeys.map((key) => {
+                return {
+                    name: key,
+                    value: CHAINLINK_SEPOLIA_PRICEFEEDS[key]
+                }
+            }),
         },
         {
             type: 'number',
