@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { configDotenv } from 'dotenv'
-import chalk from 'chalk'
+import chalk, { Chalk } from 'chalk'
 import inquirer from 'inquirer';
 
 configDotenv();
@@ -66,18 +66,22 @@ async function main() {
         * Check environment variables
     */
 
-    if (!process.env.SEPOLIA_RPC_URL) {
-        chalk.red('RPC URL not found in environment variables');
+    if (!process.env.RPC_URL) {
+        chalk.red('RPC URL not found');
         process.exit(1);
     }
 
-    if (!process.env.ZEROXBRIDGE_CONTRACT_ADDRESS) {
-        chalk.red('ZeroXBridge Contract Address not found in environment variables');
+    if (!process.env.CONTRACT_ADDRESS) {
+        chalk.red('Contract Address not set');
         process.exit(1);
+    }
+
+    if (!ethers.isAddress(process.env.CONTRACT_ADDRESS)) {
+        chalk.red(`Contract address is not a valid address`);
     }
 
     if (!process.env.PRIVATE_KEY) {
-        chalk.red('Admin Private key not found in environment variables');
+        chalk.red('Admin Private key not set');
         process.exit(1);
     }
 
@@ -87,11 +91,11 @@ async function main() {
         * Build three variables with ether.js
     */
 
-    const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-    const contract = new ethers.Contract(process.env.ZEROXBRIDGE_CONTRACT_ADDRESS, BRIDGE_ABI, wallet);
+    const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, BRIDGE_ABI, wallet);
 
-    console.log(chalk.green(`Connected at ${process.env.ZEROXBRIDGE_CONTRACT_ADDRESS}`));
+    console.log(chalk.green(`Connected at ${process.env.CONTRACT_ADDRESS}`));
     console.log(chalk.green(`Using Account: ${wallet.address}\n`))
 
     /**
@@ -111,33 +115,20 @@ async function main() {
         {
             type: 'input',
             name: 'tokenAddress',
-            message: 'Token Address (leave empty for ETH):',
+            message: 'Token Address',
             when: (answers) => answers.assetType === AssetType.ERC20,
             validate: (input) => {
-                if (!input) return true //Empty is OK for ETH
-                if (!ethers.isAddress(input)) {
-                    return 'Invalid Ethereum address format'
-                }
+                if (!input) return 'Token adddress is required for ERC20';
+                if (!ethers.isAddress(input)) return 'Invalid Ethereum address format';
+                if (input = ethers.ZeroAddress) return 'Zero address is not allowed for ERC20';
                 return true
             },
-            filter: (input) => {
-                if (!input || input === '0x0') return ethers.ZeroAddress;
-                return ethers.getAddress(input);
-            }
+            filter: (input) => ethers.getAddress(input.trim())
         },
         {
-            type: 'select',
+            type: 'list',
             name: 'priceFeed',
-            message: 'Price Feed Address',
-            // choices: [
-            //     { name: 'BTC/ETH', value: CHAINLINK_SEPOLIA_PRICEFEEDS.BTC_ETH },
-            //     { name: 'BTC/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.BTC_USD },
-            //     { name: 'CASH NAV', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CASH_NAV },
-            //     { name: 'CSPX/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CSPX_USD },
-            //     { name: 'CZK/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.CZK_USD },
-            //     { name: 'DAI/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.DAI_USD },
-            //     { name: 'ETH/USD', value: CHAINLINK_SEPOLIA_PRICEFEEDS.ETH_USD }
-            // ]
+            message: 'Price Feed Address (Chainlink Sepolia)',
             choices: priceFeedKeys.map((key) => {
                 return {
                     name: key,
@@ -162,6 +153,7 @@ async function main() {
 
     if (answers.assetType === AssetType.ETH) {
         answers.tokenAddress = ethers.ZeroAddress;
+        answers.decimals = 18;
     }
 
     console.log('Ok, I will start now');
@@ -171,7 +163,7 @@ async function main() {
     console.log(`Price Feed: ${answers.priceFeed}`);
     console.log(`Decimals: ${answers.decimals}`);
     console.log(`From: ${wallet.address}`);
-    console.log(`Contract: ${process.env.ZEROXBRIDGE_CONTRACT_ADDRESS}`);
+    console.log(`Contract: ${process.env.CONTRACT_ADDRESS}`);
 
     const { confirm } = await inquirer.prompt([
         {
